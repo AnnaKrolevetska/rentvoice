@@ -1,0 +1,198 @@
+{
+  "about": "Reproducible spoken test set. Expected outcomes were written before the first run. Audio is synthesized once from `say` with OpenAI TTS (gpt-4o-mini-tts, voice 'ash') and cached in test-set/audio/; drop your own 24 kHz mono 16-bit WAV named <case>_<turn>.wav there to test with a real voice instead. Desk date is fixed to 2026-10-01 (Thursday).",
+  "cases": [
+    {
+      "id": "S1",
+      "title": "Normal booking",
+      "turns": [
+        {
+          "say": "Hi, I need one Camera A from November fifth to November sixth."
+        },
+        {
+          "say": "Yes, please confirm."
+        }
+      ],
+      "expect": {
+        "new_bookings": [
+          {
+            "equipment_id": "camera_a",
+            "quantity": 1,
+            "start_date": "2026-11-05",
+            "end_date": "2026-11-06"
+          }
+        ],
+        "no_reask": true
+      },
+      "expected_text": "Agent reads back 1 × Camera A, 5–6 Nov (2 days), asks to confirm; after yes exactly one booking row is added."
+    },
+    {
+      "id": "S2",
+      "title": "Corrected dates",
+      "turns": [
+        {
+          "say": "I'd like one Tripod B from November fifth to November seventh."
+        },
+        {
+          "say": "Sorry, I meant November eighth to November ninth."
+        },
+        {
+          "say": "Yes, confirm it."
+        }
+      ],
+      "expect": {
+        "new_bookings": [
+          {
+            "equipment_id": "tripod_b",
+            "quantity": 1,
+            "start_date": "2026-11-08",
+            "end_date": "2026-11-09"
+          }
+        ]
+      },
+      "expected_text": "The 5–7 Nov proposal is replaced; only an 8–9 Nov booking is saved."
+    },
+    {
+      "id": "S3",
+      "title": "Insufficient stock",
+      "turns": [
+        {
+          "say": "I need two Camera A units from October eleventh to October twelfth."
+        },
+        {
+          "say": "No thanks, that's all for now."
+        }
+      ],
+      "expect": {
+        "new_bookings": []
+      },
+      "expected_text": "Agent says only one camera is free on 11–12 Oct and offers one camera or 13–14 Oct; user declines; nothing is saved."
+    },
+    {
+      "id": "S4",
+      "title": "Interruption",
+      "turns": [
+        {
+          "say": "I need a camera from November tenth to November eleventh."
+        },
+        {
+          "say": "Actually, I need a tripod instead.",
+          "mode": "barge_in",
+          "barge_after_ms": 900
+        },
+        {
+          "say": "Yes, confirm."
+        }
+      ],
+      "expect": {
+        "new_bookings": [
+          {
+            "equipment_id": "tripod_b",
+            "quantity": 1,
+            "start_date": "2026-11-10",
+            "end_date": "2026-11-11"
+          }
+        ],
+        "agent_cut_off": true
+      },
+      "expected_text": "User cuts in while the agent is speaking about the camera; agent audio stops; the tripod is proposed and booked; no camera booking."
+    },
+    {
+      "id": "S5",
+      "title": "Repeated confirmation",
+      "turns": [
+        {
+          "say": "Book one Camera A for November fifth to November sixth."
+        },
+        {
+          "say": "Yes, confirm."
+        },
+        {
+          "say": "Yes, confirm the booking."
+        }
+      ],
+      "expect": {
+        "new_bookings": [
+          {
+            "equipment_id": "camera_a",
+            "quantity": 1,
+            "start_date": "2026-11-05",
+            "end_date": "2026-11-06"
+          }
+        ],
+        "no_reask": true
+      },
+      "expected_text": "Second 'yes' does not add a row; agent says it is already booked."
+    },
+    {
+      "id": "A1",
+      "title": "Ambiguous dates → clarify",
+      "turns": [
+        {
+          "say": "I need a camera for next weekend."
+        }
+      ],
+      "expect": {
+        "new_bookings": [],
+        "agent_asks": true
+      },
+      "expected_text": "Agent states the exact dates it understood (10–11 Oct) or asks which days, and asks before booking anything."
+    },
+    {
+      "id": "A2",
+      "title": "Item not stocked → decline",
+      "turns": [
+        {
+          "say": "Can I rent a drone for tomorrow?"
+        }
+      ],
+      "expect": {
+        "new_bookings": [],
+        "agent_asks": true
+      },
+      "expected_text": "Agent says drones are not available, names what is (camera, tripod, microphone) and asks if one of those helps."
+    },
+    {
+      "id": "C1",
+      "title": "Catalog question → brief overview",
+      "turns": [
+        {
+          "say": "What equipment do you have?"
+        }
+      ],
+      "expect": {
+        "new_bookings": [],
+        "agent_asks": true,
+        "no_invented_items": true
+      },
+      "expected_text": "Agent calls get_inventory and gives a short overview (cameras, tripods, microphones) without inventing other gear, then asks what is needed; nothing is saved."
+    },
+    {
+      "id": "P1",
+      "title": "Mid-sentence pause",
+      "turns": [
+        {
+          "say": [
+            "I need one tripod from November twelfth...",
+            "to November fourteenth."
+          ],
+          "pause_ms": 1500
+        },
+        {
+          "say": "Yes."
+        }
+      ],
+      "expect": {
+        "new_bookings": [
+          {
+            "equipment_id": "tripod_b",
+            "quantity": 1,
+            "start_date": "2026-11-12",
+            "end_date": "2026-11-14"
+          }
+        ],
+        "no_answer_during_pause": true
+      },
+      "expected_text": "Agent stays silent during the 1.5 s pause, then proposes 12–14 Nov (3 days) and books it after yes."
+    }
+  ]
+}
